@@ -66,25 +66,29 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
 .loading{text-align:center;padding:3rem;color:var(--muted);font-size:13px}
 .empty{text-align:center;padding:3rem;color:var(--muted);font-size:13px}
 .section-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1rem}
-
-/* Modal KYC */
 #kyc-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:200;padding:2rem}
 #kyc-modal.open{display:flex}
-.modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;padding:2rem}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:720px;max-height:90vh;overflow-y:auto;padding:2rem}
 .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
 .modal-header h2{font-size:16px;font-weight:600}
-.modal-close{background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+.modal-close{background:transparent;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;padding:4px}
 .modal-close:hover{color:var(--text)}
-.docs-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
-.doc-card{background:#222;border:1px solid var(--border);border-radius:10px;overflow:hidden}
-.doc-label{padding:8px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
-.doc-img{width:100%;height:180px;object-fit:cover;display:block;cursor:pointer}
-.doc-empty{width:100%;height:180px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px}
-.modal-actions{display:flex;gap:10px;flex-wrap:wrap}
 .modal-info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.5rem}
 .info-row{background:#222;border-radius:8px;padding:10px 14px}
 .info-row .lbl{font-size:11px;color:var(--muted);margin-bottom:4px}
 .info-row .val{font-size:13px;font-weight:500}
+.docs-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+.doc-card{background:#222;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.doc-label{padding:8px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.doc-img{width:100%;height:180px;object-fit:cover;display:block;cursor:pointer;transition:.2s}
+.doc-img:hover{opacity:.85}
+.doc-empty{width:100%;height:180px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px}
+.modal-section{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;margin-top:1.5rem}
+.modal-actions{display:flex;gap:10px;flex-wrap:wrap;padding-top:1rem;border-top:1px solid var(--border);margin-top:1rem}
+.action-group{display:flex;gap:8px;flex-wrap:wrap;width:100%}
+.action-label{font-size:11px;color:var(--muted);margin-bottom:6px}
+.danger-zone{border:1px solid rgba(255,68,68,.3);border-radius:10px;padding:1rem;margin-top:1rem}
+.danger-zone .danger-title{font-size:12px;color:var(--danger);margin-bottom:8px;font-weight:500}
 </style>
 </head>
 <body>
@@ -99,16 +103,23 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
   </div>
 </div>
 
-<!-- Modal KYC -->
 <div id="kyc-modal">
   <div class="modal-box">
     <div class="modal-header">
-      <h2 id="modal-title">Vérification KYC</h2>
-      <button class="modal-close" onclick="closeKyc()">✕</button>
+      <h2 id="modal-title">Dossier livreur</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-info" id="modal-info"></div>
+    <div class="section-label">Documents soumis</div>
     <div class="docs-grid" id="modal-docs"></div>
-    <div class="modal-actions" id="modal-actions"></div>
+    <div class="modal-section">Actions KYC</div>
+    <div class="action-group" id="kyc-actions"></div>
+    <div class="modal-section">Accès plateforme</div>
+    <div class="action-group" id="block-actions"></div>
+    <div class="danger-zone">
+      <div class="danger-title">⚠ Zone dangereuse</div>
+      <div class="action-group" id="delete-actions"></div>
+    </div>
   </div>
 </div>
 
@@ -228,8 +239,10 @@ async function adminGet(path) {
   return r.json();
 }
 
-async function adminPatch(path, body) {
-  const r = await fetch(API+path, {method:'PATCH',headers:{'x-admin-secret':SECRET,'Content-Type':'application/json'},body:JSON.stringify(body)});
+async function adminReq(path, method='PATCH', body=null) {
+  const opts = {method, headers:{'x-admin-secret':SECRET}};
+  if (body) { opts.headers['Content-Type']='application/json'; opts.body=JSON.stringify(body); }
+  const r = await fetch(API+path, opts);
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
@@ -245,14 +258,14 @@ function applyStats(s) {
 }
 
 function kycBadge(s) {
-  const cls = {pending:'bm',submitted:'by',approved:'bg',rejected:'br'};
-  const lbl = {pending:'En attente',submitted:'Soumis',approved:'Approuvé',rejected:'Rejeté'};
+  const cls={pending:'bm',submitted:'by',approved:'bg',rejected:'br'};
+  const lbl={pending:'En attente',submitted:'Soumis',approved:'Approuvé',rejected:'Rejeté'};
   return `<span class="badge ${cls[s]||'bm'}">${lbl[s]||s}</span>`;
 }
 
 function statusBadge(s) {
-  const cls = {pending:'by',accepted:'bb',in_progress:'bb',delivered:'bg',confirmed:'bg',cancelled:'br',disputed:'br',open:'by',resolved:'bg',rejected:'br'};
-  const lbl = {pending:'En attente',accepted:'Acceptée',in_progress:'En cours',delivered:'Livrée',confirmed:'Confirmée',cancelled:'Annulée',disputed:'Litige',open:'Ouvert',resolved:'Résolu',rejected:'Rejeté'};
+  const cls={pending:'by',accepted:'bb',in_progress:'bb',delivered:'bg',confirmed:'bg',cancelled:'br',disputed:'br',open:'by',resolved:'bg',rejected:'br'};
+  const lbl={pending:'En attente',accepted:'Acceptée',in_progress:'En cours',delivered:'Livrée',confirmed:'Confirmée',cancelled:'Annulée',disputed:'Litige',open:'Ouvert',resolved:'Résolu',rejected:'Rejeté'};
   return `<span class="badge ${cls[s]||'bm'}">${lbl[s]||s}</span>`;
 }
 
@@ -263,44 +276,37 @@ function fmtDate(d) {
 
 function fmtAddr(s) {
   if (!s) return '—';
-  return s.length > 22 ? s.slice(0,22)+'…' : s;
+  return s.length>22 ? s.slice(0,22)+'…' : s;
 }
 
 async function loadDashboard() {
+  try { const s=await adminGet('/admin/stats'); applyStats(s); } catch(e){}
   try {
-    const s = await adminGet('/admin/stats');
-    applyStats(s);
-  } catch(e) {}
+    const riders=await adminGet('/admin/riders');
+    document.getElementById('s-kyc').textContent = riders.filter(r=>r.kyc_status==='submitted').length;
+  } catch(e){}
   try {
-    const riders = await adminGet('/admin/riders');
-    const kyc = riders.filter(r => r.kyc_status === 'submitted').length;
-    document.getElementById('s-kyc').textContent = kyc;
-  } catch(e) {}
-  try {
-    const orders = await adminGet('/admin/orders');
-    const el = document.getElementById('recent-table');
-    el.innerHTML = orders.length ? `<table>
+    const orders=await adminGet('/admin/orders');
+    const el=document.getElementById('recent-table');
+    el.innerHTML=orders.length?`<table>
       <thead><tr><th>#</th><th>Ramassage</th><th>Livraison</th><th>Montant</th><th>Statut</th><th>Date</th></tr></thead>
       <tbody>${orders.slice(0,8).map(o=>`<tr>
         <td style="color:var(--muted)">#${o.id}</td>
-        <td>${fmtAddr(o.pickup_address)}</td>
-        <td>${fmtAddr(o.delivery_address)}</td>
+        <td>${fmtAddr(o.pickup_address)}</td><td>${fmtAddr(o.delivery_address)}</td>
         <td>${o.amount?o.amount.toLocaleString()+' F':'—'}</td>
         <td>${statusBadge(o.status)}</td>
         <td style="color:var(--muted)">${fmtDate(o.created_at)}</td>
-      </tr>`).join('')}</tbody></table>` : '<div class="empty">Aucune commande</div>';
-  } catch(e) {
-    document.getElementById('recent-table').innerHTML = '<div class="empty">Erreur de chargement</div>';
-  }
+      </tr>`).join('')}</tbody></table>`:'<div class="empty">Aucune commande</div>';
+  } catch(e){ document.getElementById('recent-table').innerHTML='<div class="empty">Erreur</div>'; }
 }
 
 async function loadRiders() {
-  const el = document.getElementById('riders-table');
-  el.innerHTML = '<div class="loading">Chargement...</div>';
+  const el=document.getElementById('riders-table');
+  el.innerHTML='<div class="loading">Chargement...</div>';
   try {
-    const riders = await adminGet('/admin/riders');
-    if (!riders.length) { el.innerHTML='<div class="empty">Aucun livreur</div>'; return; }
-    el.innerHTML = `<table>
+    const riders=await adminGet('/admin/riders');
+    if (!riders.length){el.innerHTML='<div class="empty">Aucun livreur</div>';return;}
+    el.innerHTML=`<table>
       <thead><tr><th>Nom</th><th>Téléphone</th><th>Zone</th><th>KYC</th><th>Disponible</th><th>Bloqué</th><th>Actions</th></tr></thead>
       <tbody>${riders.map(r=>`<tr>
         <td>${r.full_name||'—'}</td>
@@ -308,124 +314,144 @@ async function loadRiders() {
         <td>${r.zone||'—'}</td>
         <td>${kycBadge(r.kyc_status)}</td>
         <td>${r.is_available?'<span class="badge bg">Oui</span>':'<span class="badge bm">Non</span>'}</td>
-        <td>${r.is_blocked?'<span class="badge br">Oui</span>':'<span class="badge bm">Non</span>'}</td>
-        <td style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn-sm btn-blue" onclick="openKyc(${JSON.stringify(r).replace(/"/g,'&quot;')})">Voir dossier</button>
-          <button class="btn-sm ${r.is_blocked?'btn-green':'btn-red'}" onclick="toggleBlock(${r.user_id},'${r.full_name||r.phone}')">${r.is_blocked?'Débloquer':'Bloquer'}</button>
-        </td>
+        <td>${r.is_blocked?'<span class="badge br">Bloqué</span>':'<span class="badge bm">Non</span>'}</td>
+        <td><button class="btn-sm btn-blue" onclick='openModal(${JSON.stringify(JSON.stringify(r))})'>Gérer</button></td>
       </tr>`).join('')}</tbody></table>`;
-  } catch(e) {
-    el.innerHTML = `<div class="empty">Erreur : ${e.message}</div>`;
-  }
+  } catch(e){ el.innerHTML=`<div class="empty">Erreur : ${e.message}</div>`; }
 }
 
-function openKyc(r) {
+function openModal(rJson) {
+  const r = JSON.parse(rJson);
   currentRider = r;
-  document.getElementById('modal-title').textContent = `Dossier KYC — ${r.full_name||r.phone}`;
+  document.getElementById('modal-title').textContent = r.full_name||r.phone;
+
   document.getElementById('modal-info').innerHTML = `
     <div class="info-row"><div class="lbl">Téléphone</div><div class="val">${r.phone}</div></div>
     <div class="info-row"><div class="lbl">Zone</div><div class="val">${r.zone||'—'}</div></div>
     <div class="info-row"><div class="lbl">Statut KYC</div><div class="val">${kycBadge(r.kyc_status)}</div></div>
+    <div class="info-row"><div class="lbl">Paiement</div><div class="val">${r.payment_provider||'—'} ${r.payment_phone?'('+r.payment_phone+')':''}</div></div>
+    <div class="info-row"><div class="lbl">Disponible</div><div class="val">${r.is_available?'Oui':'Non'}</div></div>
     <div class="info-row"><div class="lbl">Motif rejet</div><div class="val">${r.kyc_rejection_reason||'—'}</div></div>
   `;
-  const docs = [
-    {label:'CNI Recto', url:r.cni_front_url},
-    {label:'CNI Verso', url:r.cni_back_url},
-    {label:'Selfie + CNI', url:r.selfie_url},
-    {label:'Permis de conduire', url:r.permis_url},
+
+  const docs=[
+    {label:'CNI Recto',url:r.cni_front_url},
+    {label:'CNI Verso',url:r.cni_back_url},
+    {label:'Selfie + CNI',url:r.selfie_url},
+    {label:'Permis de conduire',url:r.permis_url},
   ];
-  document.getElementById('modal-docs').innerHTML = docs.map(d=>`
+  document.getElementById('modal-docs').innerHTML=docs.map(d=>`
     <div class="doc-card">
       <div class="doc-label">${d.label}</div>
       ${d.url
-        ? `<img class="doc-img" src="${d.url}" onclick="window.open('${d.url}','_blank')" title="Cliquer pour agrandir" />`
-        : `<div class="doc-empty">Non soumis</div>`}
-    </div>
-  `).join('');
-  const actions = document.getElementById('modal-actions');
-  if (r.kyc_status === 'submitted') {
-    actions.innerHTML = `
-      <button class="btn-sm btn-green" onclick="approveKyc(${r.user_id})">✓ Approuver</button>
-      <button class="btn-sm btn-red" onclick="rejectKyc(${r.user_id})">✕ Rejeter</button>
-    `;
-  } else if (r.kyc_status === 'approved') {
-    actions.innerHTML = `<span class="badge bg">KYC approuvé</span>`;
-  } else if (r.kyc_status === 'rejected') {
-    actions.innerHTML = `<span class="badge br">KYC rejeté</span>`;
+        ?`<img class="doc-img" src="${d.url}" onclick="window.open('${d.url}','_blank')" title="Cliquer pour agrandir" />`
+        :`<div class="doc-empty">Non soumis</div>`}
+    </div>`).join('');
+
+  // KYC actions
+  const kyc=document.getElementById('kyc-actions');
+  if(r.kyc_status==='submitted'){
+    kyc.innerHTML=`
+      <button class="btn-sm btn-green" onclick="approveKyc()">✓ Approuver le KYC</button>
+      <button class="btn-sm btn-red" onclick="rejectKyc()">✕ Rejeter le KYC</button>`;
+  } else if(r.kyc_status==='approved'){
+    kyc.innerHTML=`<span class="badge bg">KYC approuvé</span>`;
+  } else if(r.kyc_status==='rejected'){
+    kyc.innerHTML=`
+      <span class="badge br">KYC rejeté</span>
+      <button class="btn-sm btn-yellow" onclick="approveKyc()">Approuver quand même</button>`;
   } else {
-    actions.innerHTML = `<span class="badge bm">Documents non soumis</span>`;
+    kyc.innerHTML=`<span class="badge bm">Documents non encore soumis</span>`;
   }
+
+  // Block actions
+  const block=document.getElementById('block-actions');
+  if(r.is_blocked){
+    block.innerHTML=`<button class="btn-sm btn-green" onclick="toggleBlock()">✓ Débloquer ce livreur</button>`;
+  } else {
+    block.innerHTML=`<button class="btn-sm btn-yellow" onclick="toggleBlock()">⊘ Bloquer ce livreur</button>`;
+  }
+
+  // Delete
+  document.getElementById('delete-actions').innerHTML=`
+    <button class="btn-sm btn-red" onclick="deleteRider()">🗑 Supprimer définitivement ce profil</button>`;
+
   document.getElementById('kyc-modal').classList.add('open');
 }
 
-function closeKyc() {
+function closeModal() {
   document.getElementById('kyc-modal').classList.remove('open');
-  currentRider = null;
+  currentRider=null;
 }
 
-async function approveKyc(userId) {
+async function approveKyc() {
+  if (!confirm(`Approuver le KYC de ${currentRider.full_name||currentRider.phone} ?`)) return;
   try {
-    await fetch(`${API}/admin/riders/${userId}/kyc/approve`, {method:'PATCH',headers:{'x-admin-secret':SECRET}});
-    closeKyc();
-    loadRiders();
-    loadDashboard();
-  } catch(e) { alert('Erreur : '+e.message); }
+    await adminReq(`/admin/riders/${currentRider.user_id}/kyc/approve`);
+    closeModal(); loadRiders(); loadDashboard();
+  } catch(e){alert('Erreur : '+e.message);}
 }
 
-async function rejectKyc(userId) {
-  const reason = prompt('Motif du rejet :');
+async function rejectKyc() {
+  const reason=prompt('Motif du rejet (sera visible par le livreur) :');
   if (!reason) return;
   try {
-    await fetch(`${API}/admin/riders/${userId}/kyc/reject?reason=${encodeURIComponent(reason)}`, {method:'PATCH',headers:{'x-admin-secret':SECRET}});
-    closeKyc();
-    loadRiders();
-  } catch(e) { alert('Erreur : '+e.message); }
+    await fetch(`${API}/admin/riders/${currentRider.user_id}/kyc/reject?reason=${encodeURIComponent(reason)}`,
+      {method:'PATCH',headers:{'x-admin-secret':SECRET}});
+    closeModal(); loadRiders();
+  } catch(e){alert('Erreur : '+e.message);}
 }
 
-async function toggleBlock(userId, name) {
-  if (!confirm(`Bloquer/débloquer ${name} ?`)) return;
+async function toggleBlock() {
+  const action=currentRider.is_blocked?'débloquer':'bloquer';
+  if (!confirm(`Voulez-vous ${action} ${currentRider.full_name||currentRider.phone} ?`)) return;
   try {
-    await fetch(`${API}/admin/riders/${userId}/block`, {method:'PATCH',headers:{'x-admin-secret':SECRET}});
-    loadRiders();
-  } catch(e) { alert('Erreur : '+e.message); }
+    await adminReq(`/admin/riders/${currentRider.user_id}/block`);
+    closeModal(); loadRiders(); loadDashboard();
+  } catch(e){alert('Erreur : '+e.message);}
+}
+
+async function deleteRider() {
+  const name=currentRider.full_name||currentRider.phone;
+  if (!confirm(`⚠️ Supprimer définitivement le profil de ${name} ?\n\nCette action est irréversible.`)) return;
+  if (!confirm(`Dernière confirmation : supprimer ${name} ?`)) return;
+  try {
+    await adminReq(`/admin/riders/${currentRider.user_id}`,'DELETE');
+    closeModal(); loadRiders(); loadDashboard();
+  } catch(e){alert('Erreur : '+e.message);}
 }
 
 async function loadOrders() {
-  const el = document.getElementById('orders-table');
-  el.innerHTML = '<div class="loading">Chargement...</div>';
+  const el=document.getElementById('orders-table');
+  el.innerHTML='<div class="loading">Chargement...</div>';
   try {
-    const orders = await adminGet('/admin/orders');
-    if (!orders.length) { el.innerHTML='<div class="empty">Aucune commande</div>'; return; }
-    el.innerHTML = `<table>
+    const orders=await adminGet('/admin/orders');
+    if (!orders.length){el.innerHTML='<div class="empty">Aucune commande</div>';return;}
+    el.innerHTML=`<table>
       <thead><tr><th>#</th><th>Client</th><th>Livreur</th><th>Ramassage</th><th>Livraison</th><th>Montant</th><th>Commission</th><th>Statut</th><th>Date</th></tr></thead>
       <tbody>${orders.map(o=>`<tr>
         <td style="color:var(--muted)">#${o.id}</td>
-        <td>#${o.client_id}</td>
-        <td>${o.rider_id?'#'+o.rider_id:'—'}</td>
-        <td>${fmtAddr(o.pickup_address)}</td>
-        <td>${fmtAddr(o.delivery_address)}</td>
+        <td>#${o.client_id}</td><td>${o.rider_id?'#'+o.rider_id:'—'}</td>
+        <td>${fmtAddr(o.pickup_address)}</td><td>${fmtAddr(o.delivery_address)}</td>
         <td>${o.amount?o.amount.toLocaleString()+' F':'—'}</td>
         <td>${o.commission?o.commission.toLocaleString()+' F':'—'}</td>
         <td>${statusBadge(o.status)}</td>
         <td style="color:var(--muted)">${fmtDate(o.created_at)}</td>
       </tr>`).join('')}</tbody></table>`;
-  } catch(e) {
-    el.innerHTML = `<div class="empty">Erreur : ${e.message}</div>`;
-  }
+  } catch(e){el.innerHTML=`<div class="empty">Erreur : ${e.message}</div>`;}
 }
 
 async function loadDisputes() {
-  const el = document.getElementById('disputes-table');
-  el.innerHTML = '<div class="loading">Chargement...</div>';
+  const el=document.getElementById('disputes-table');
+  el.innerHTML='<div class="loading">Chargement...</div>';
   try {
-    const disputes = await adminGet('/admin/disputes');
-    if (!disputes.length) { el.innerHTML='<div class="empty">Aucun litige</div>'; return; }
-    el.innerHTML = `<table>
+    const disputes=await adminGet('/admin/disputes');
+    if (!disputes.length){el.innerHTML='<div class="empty">Aucun litige</div>';return;}
+    el.innerHTML=`<table>
       <thead><tr><th>#</th><th>Commande</th><th>Plaignant</th><th>Raison</th><th>Statut</th><th>Expire</th><th>Actions</th></tr></thead>
       <tbody>${disputes.map(d=>`<tr>
         <td style="color:var(--muted)">#${d.id}</td>
-        <td>#${d.order_id}</td>
-        <td>#${d.complainant_id}</td>
+        <td>#${d.order_id}</td><td>#${d.complainant_id}</td>
         <td>${d.reason}</td>
         <td>${statusBadge(d.status)}</td>
         <td style="color:var(--muted)">${fmtDate(d.expires_at)}</td>
@@ -434,26 +460,20 @@ async function loadDisputes() {
           <button class="btn-sm btn-red" onclick="resolveDispute(${d.id},'rejected')">Rejeter</button>
         `:'—'}</td>
       </tr>`).join('')}</tbody></table>`;
-  } catch(e) {
-    el.innerHTML = `<div class="empty">Erreur : ${e.message}</div>`;
-  }
+  } catch(e){el.innerHTML=`<div class="empty">Erreur : ${e.message}</div>`;}
 }
 
-async function resolveDispute(id, status) {
-  const note = prompt(`Note de ${status==='resolved'?'résolution':'rejet'} :`);
+async function resolveDispute(id,status) {
+  const note=prompt(`Note de ${status==='resolved'?'résolution':'rejet'} :`);
   if (!note) return;
   try {
-    await fetch(`${API}/admin/disputes/${id}/resolve`, {
-      method:'PATCH',
-      headers:{'x-admin-secret':SECRET,'Content-Type':'application/json'},
-      body:JSON.stringify({status,resolution_note:note})
-    });
+    await adminReq(`/admin/disputes/${id}/resolve`,'PATCH',{status,resolution_note:note});
     loadDisputes(); loadDashboard();
-  } catch(e) { alert('Erreur : '+e.message); }
+  } catch(e){alert('Erreur : '+e.message);}
 }
 
-document.getElementById('kyc-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeKyc();
+document.getElementById('kyc-modal').addEventListener('click',function(e){
+  if(e.target===this) closeModal();
 });
 </script>
 </body>
