@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Allô Tiak-Tiak — Admin</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0A0A0A;--sidebar:#111;--card:#1A1A1A;--border:#2A2A2A;--green:#00C853;--yellow:#FFD600;--text:#F0F0F0;--muted:#777;--danger:#FF4444;--info:#378ADD}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;font-size:14px}
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2.5rem;width:360px}
+.login-box h1{font-size:20px;font-weight:600;margin-bottom:4px}
+.login-box p{color:var(--muted);font-size:13px;margin-bottom:1.5rem}
+input[type=password]{width:100%;padding:10px 14px;background:#222;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:12px;outline:none}
+input[type=password]:focus{border-color:var(--green)}
+.btn-login{width:100%;padding:11px;background:var(--green);color:#000;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+#error-msg{color:var(--danger);font-size:12px;margin-bottom:8px;min-height:16px}
+aside{width:220px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.brand{padding:1.5rem;border-bottom:1px solid var(--border)}
+.brand h2{font-size:15px;font-weight:600}
+.brand p{font-size:11px;color:var(--muted);margin-top:2px}
+nav{padding:.75rem 0;flex:1}
+nav a{display:flex;align-items:center;gap:10px;padding:10px 1.5rem;color:var(--muted);text-decoration:none;font-size:13px;border-left:2px solid transparent;transition:.1s}
+nav a:hover{color:var(--text);background:rgba(255,255,255,.03)}
+nav a.active{color:var(--text);border-left-color:var(--green);background:rgba(0,200,83,.05)}
+nav a svg{width:15px;height:15px;flex-shrink:0}
+.sidebar-footer{padding:1.25rem 1.5rem;border-top:1px solid var(--border)}
+.sidebar-footer button{width:100%;padding:8px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer}
+.sidebar-footer button:hover{border-color:var(--danger);color:var(--danger)}
+main{flex:1;overflow-y:auto;padding:2rem}
+.page{display:none}
+.page.active{display:block}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.page-header h1{font-size:18px;font-weight:600}
+.refresh-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer}
+.refresh-btn:hover{border-color:var(--green);color:var(--green)}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.5rem}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.25rem}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.stat-value{font-size:28px;font-weight:600}
+.stat-value.green{color:var(--green)}
+.stat-value.yellow{color:var(--yellow)}
+.stat-value.info{color:var(--info)}
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1.5rem}
+table{width:100%;border-collapse:collapse}
+thead th{padding:11px 16px;text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);font-weight:500;white-space:nowrap}
+tbody td{padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.bg{background:rgba(0,200,83,.15);color:var(--green)}
+.by{background:rgba(255,214,0,.15);color:var(--yellow)}
+.br{background:rgba(255,68,68,.15);color:var(--danger)}
+.bb{background:rgba(55,138,221,.15);color:var(--info)}
+.bm{background:rgba(119,119,119,.15);color:var(--muted)}
+.btn-sm{padding:5px 12px;border-radius:6px;border:none;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap}
+.btn-green{background:rgba(0,200,83,.2);color:var(--green)}
+.btn-green:hover{background:rgba(0,200,83,.3)}
+.btn-blue{background:rgba(55,138,221,.2);color:var(--info)}
+.btn-blue:hover{background:rgba(55,138,221,.3)}
+.btn-red{background:rgba(255,68,68,.2);color:var(--danger)}
+.btn-red:hover{background:rgba(255,68,68,.3)}
+.btn-yellow{background:rgba(255,214,0,.2);color:var(--yellow)}
+.btn-yellow:hover{background:rgba(255,214,0,.3)}
+.loading{text-align:center;padding:3rem;color:var(--muted);font-size:13px}
+.empty{text-align:center;padding:3rem;color:var(--muted);font-size:13px}
+.section-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:1rem}
+
+/* Modal KYC */
+#kyc-modal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:200;padding:2rem}
+#kyc-modal.open{display:flex}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;padding:2rem}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.modal-header h2{font-size:16px;font-weight:600}
+.modal-close{background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+.modal-close:hover{color:var(--text)}
+.docs-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+.doc-card{background:#222;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.doc-label{padding:8px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.doc-img{width:100%;height:180px;object-fit:cover;display:block;cursor:pointer}
+.doc-empty{width:100%;height:180px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px}
+.modal-actions{display:flex;gap:10px;flex-wrap:wrap}
+.modal-info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.5rem}
+.info-row{background:#222;border-radius:8px;padding:10px 14px}
+.info-row .lbl{font-size:11px;color:var(--muted);margin-bottom:4px}
+.info-row .val{font-size:13px;font-weight:500}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <h1><span style="color:var(--green)">●</span> Allô Tiak-Tiak</h1>
+    <p>Espace administrateur</p>
+    <div id="error-msg"></div>
+    <input type="password" id="secret-input" placeholder="Clé administrateur" />
+    <button class="btn-login" onclick="login()">Accéder</button>
+  </div>
+</div>
+
+<!-- Modal KYC -->
+<div id="kyc-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="modal-title">Vérification KYC</h2>
+      <button class="modal-close" onclick="closeKyc()">✕</button>
+    </div>
+    <div class="modal-info" id="modal-info"></div>
+    <div class="docs-grid" id="modal-docs"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<aside>
+  <div class="brand">
+    <h2><span style="color:var(--green)">●</span> Tiak-Tiak</h2>
+    <p>Administration</p>
+  </div>
+  <nav>
+    <a href="#" class="active" onclick="return showPage('dashboard',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Vue d'ensemble
+    </a>
+    <a href="#" onclick="return showPage('riders',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      Livreurs
+    </a>
+    <a href="#" onclick="return showPage('orders',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Commandes
+    </a>
+    <a href="#" onclick="return showPage('disputes',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+      Litiges
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <button onclick="logout()">Déconnexion</button>
+  </div>
+</aside>
+
+<main>
+  <div id="page-dashboard" class="page active">
+    <div class="page-header">
+      <h1>Vue d'ensemble</h1>
+      <button class="refresh-btn" onclick="loadDashboard()">↻ Actualiser</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Commandes totales</div><div class="stat-value" id="s-orders">—</div></div>
+      <div class="stat-card"><div class="stat-label">Livreurs vérifiés</div><div class="stat-value green" id="s-riders">—</div></div>
+      <div class="stat-card"><div class="stat-label">Litiges ouverts</div><div class="stat-value yellow" id="s-disputes">—</div></div>
+      <div class="stat-card"><div class="stat-label">Commission totale</div><div class="stat-value info" id="s-commission">—</div></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">En livraison</div><div class="stat-value" id="s-inprogress">—</div></div>
+      <div class="stat-card"><div class="stat-label">Livreurs disponibles</div><div class="stat-value green" id="s-available">—</div></div>
+      <div class="stat-card"><div class="stat-label">Revenu total</div><div class="stat-value" id="s-revenue">—</div></div>
+      <div class="stat-card"><div class="stat-label">KYC en attente</div><div class="stat-value yellow" id="s-kyc">—</div></div>
+    </div>
+    <div class="section-label">Dernières commandes</div>
+    <div class="table-wrap" id="recent-table"><div class="loading">Chargement...</div></div>
+  </div>
+
+  <div id="page-riders" class="page">
+    <div class="page-header">
+      <h1>Livreurs</h1>
+      <button class="refresh-btn" onclick="loadRiders()">↻ Actualiser</button>
+    </div>
+    <div class="table-wrap" id="riders-table"><div class="loading">Chargement...</div></div>
+  </div>
+
+  <div id="page-orders" class="page">
+    <div class="page-header">
+      <h1>Commandes</h1>
+      <button class="refresh-btn" onclick="loadOrders()">↻ Actualiser</button>
+    </div>
+    <div class="table-wrap" id="orders-table"><div class="loading">Chargement...</div></div>
+  </div>
+
+  <div id="page-disputes" class="page">
+    <div class="page-header">
+      <h1>Litiges</h1>
+      <button class="refresh-btn" onclick="loadDisputes()">↻ Actualiser</button>
+    </div>
+    <div class="table-wrap" id="disputes-table"><div class="loading">Chargement...</div></div>
+  </div>
+</main>
+
+<script>
+const API = 'https://allo-tiak-tiak-backend.onrender.com';
+let SECRET = '';
+let currentRider = null;
+
+function login() {
+  const v = document.getElementById('secret-input').value.trim();
+  if (!v) { document.getElementById('error-msg').textContent = 'Clé requise'; return; }
+  SECRET = v;
+  adminGet('/admin/stats').then(r => {
+    document.getElementById('login-screen').style.display = 'none';
+    applyStats(r);
+    loadDashboard(); loadRiders(); loadOrders(); loadDisputes();
+  }).catch(() => {
+    SECRET = '';
+    document.getElementById('error-msg').textContent = 'Clé invalide';
+  });
+}
+
+function logout() {
+  SECRET = '';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('secret-input').value = '';
+}
+
+document.getElementById('secret-input').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
+
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+  return false;
+}
+
+async function adminGet(path) {
+  const r = await fetch(API+path, {headers:{'x-admin-secret':SECRET}});
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+async function adminPatch(path, body) {
+  const r = await fetch(API+path, {method:'PATCH',headers:{'x-admin-secret':SECRET,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+function applyStats(s) {
+  document.getElementById('s-orders').textContent = s.total_orders;
+  document.getElementById('s-riders').textContent = s.verified_riders;
+  document.getElementById('s-disputes').textContent = s.open_disputes;
+  document.getElementById('s-commission').textContent = s.total_commission.toLocaleString()+' F';
+  document.getElementById('s-inprogress').textContent = s.in_progress_orders;
+  document.getElementById('s-available').textContent = s.available_riders;
+  document.getElementById('s-revenue').textContent = s.total_revenue.toLocaleString()+' F';
+}
+
+function kycBadge(s) {
+  const cls = {pending:'bm',submitted:'by',approved:'bg',rejected:'br'};
+  const lbl = {pending:'En attente',submitted:'Soumis',approved:'Approuvé',rejected:'Rejeté'};
+  return `<span class="badge ${cls[s]||'bm'}">${lbl[s]||s}</span>`;
+}
+
+function statusBadge(s) {
+  const cls = {pending:'by',accepted:'bb',in_progress:'bb',delivered:'bg',confirmed:'bg',cancelled:'br',disputed:'br',open:'by',resolved:'bg',rejected:'br'};
+  const lbl = {pending:'En attente',accepted:'Acceptée',in_progress:'En cours',delivered:'Livrée',confirmed:'Confirmée',cancelled:'Annulée',disputed:'Litige',open:'Ouvert',resolved:'Résolu',rejected:'Rejeté'};
+  return `<span class="badge ${cls[s]||'bm'}">${lbl[s]||s}</span>`;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+
+function fmtAddr(s) {
+  if (!s) return '—';
+  return s.length > 22 ? s.slice(0,22)+'…' : s;
+}
+
+async function loadDashboard() {
+  try {
+    const s = await adminGet('/admin/stats');
+    applyStats(s);
+  } catch(e) {}
+  try {
+    const riders = await adminGet('/admin/riders');
+    const kyc = riders.filter(r => r.kyc_status === 'submitted').length;
+    document.getElementById('s-kyc').textContent = kyc;
+  } catch(e) {}
+  try {
+    const orders = await adminGet('/admin/orders');
+    const el = document.getElementById('recent-table');
+    el.innerHTML = orders.length ? `<table>
+      <thead><tr><th>#</th><th>Ramassage</th><th>Livraison</th><th>Montant</th><th>Statut</th><th>Date</th></tr></thead>
+      <tbody>${orders.slice(0,8).map(o=>`<tr>
+        <td style="color:var(--muted)">#${o.id}</td>
+        <td>${fmtAddr(o.pickup_address)}</td>
+        <td>${fmtAddr(o.delivery_address)}</td>
+        <td>${o.amount?o.amount.toLocaleString()+' F':'—'}</td>
+        <td>${statusBadge(o.status)}</td>
+        <td style="color:var(--muted)">${fmtDate(o.created_at)}</td>
+      </tr>`).join('')}</tbody></table>` : '<div class="empty">Aucune commande</div>';
+  } catch(e) {
+    document.getElementById('recent-table').innerHTML = '<div class="empty">Erreur de chargement</div>';
+  }
+}
+
+async function loadRiders() {
+  const el = document.getElementById('riders-table');
+  el.innerHTML = '<div class="loading">Chargement...</div>';
+  try {
+    const riders = await adminGet('/admin/riders');
+    if (!riders.length) { el.innerHTML='<div class="empty">Aucun livreur</div>'; return; }
+    el.innerHTML = `<table>
+      <thead><tr><th>Nom</th><th>Téléphone</th><th>Zone</th><th>KYC</th><th>Disponible</th><th>Bloqué</th><th>Actions</th></tr></thead>
+      <tbody>${riders.map(r=>`<tr>
+        <td>${r.full_name||'—'}</td>
+        <td style="color:var(--muted)">${r.phone}</td>
+        <td>${r.zone||'—'}</td>
+        <td>${kycBadge(r.kyc_status)}</td>
+        <td>${r.is_available?'<span class="badge bg">Oui</span>':'<span class="badge bm">Non</span>'}</td>
+        <td>${r.is_blocked?'<span class="badge br">Oui</span>':'<span class="badge bm">Non</span>'}</td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn-sm btn-blue" onclick="openKyc(${JSON.stringify(r).replace(/"/g,'&quot;')})">Voir dossier</button>
+          <button class="btn-sm ${r.is_blocked?'btn-green':'btn-red'}" onclick="toggleBlock(${r.user_id},'${r.full_name||r.phone}')">${r.is_blocked?'Débloquer':'Bloquer'}</button>
+        </td>
+      </tr>`).join('')}</tbody></table>`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty">Erreur : ${e.message}</div>`;
+  }
+}
+
+function openKyc(r) {
+  currentRider = r;
+  document.getElementById('modal-title').textContent = `Dossier KYC — ${r.full_name||r.phone}`;
+  document.getElementById('modal-info').innerHTML = `
+    <div class="info-row"><div class="lbl">Téléphone</div><div class="val">${r.phone}</div></div>
+    <div class="info-row"><div class="lbl">Zone</div><div class="val">${r.zone||'—'}</div></div>
+    <div class="info-row"><div class="lbl">Statut KYC</div><div class="val">${kycBadge(r.kyc_status)}</div></div>
+    <div class="info-row"><div class="lbl">Motif rejet</div><div class="val">${r.kyc_rejection_reason||'—'}</div></div>
+  `;
+  const docs = [
+    {label:'CNI Recto', url:r.cni_front_url},
+    {label:'CNI Verso', url:r.cni_back_url},
+    {label:'Selfie + CNI', url:r.selfie_url},
+    {label:'Permis de conduire', url:r.permis_url},
+  ];
+  document.getElementById('modal-docs').innerHTML = docs.map(d=>`
+    <div class="doc-card">
+      <div class="doc-label">${d.label}</div>
+      ${d.url
+        ? `<img class="doc-img" src="${d.url}" onclick="window.open('${d.url}','_blank')" title="Cliquer pour agrandir" />`
+        : `<div class="doc-empty">Non soumis</div>`}
+    </div>
+  `).join('');
+  const actions = document.getElementById('modal-actions');
+  if (r.kyc_status === 'submitted') {
+    actions.innerHTML = `
+      <button class="btn-sm btn-green" onclick="approveKyc(${r.user_id})">✓ Approuver</button>
+      <button class="btn-sm btn-red" onclick="rejectKyc(${r.user_id})">✕ Rejeter</button>
+    `;
+  } else if (r.kyc_status === 'approved') {
+    actions.innerHTML = `<span class="badge bg">KYC approuvé</span>`;
+  } else if (r.kyc_status === 'rejected') {
+    actions.innerHTML = `<span class="badge br">KYC rejeté</span>`;
+  } else {
+    actions.innerHTML = `<span class="badge bm">Documents non soumis</span>`;
+  }
+  document.getElementById('kyc-modal').classList.add('open');
+}
+
+function closeKyc() {
+  document.getElementById('kyc-modal').classList.remove('open');
+  currentRider = null;
+}
+
+async function approveKyc(userId) {
+  try {
+    await fetch(`${API}/admin/riders/${userId}/kyc/approve`, {method:'PATCH',headers:{'x-admin-secret':SECRET}});
+    closeKyc();
+    loadRiders();
+    loadDashboard();
+  } catch(e) { alert('Erreur : '+e.message); }
+}
+
+async function rejectKyc(userId) {
+  const reason = prompt('Motif du rejet :');
+  if (!reason) return;
+  try {
+    await fetch(`${API}/admin/riders/${userId}/kyc/reject?reason=${encodeURIComponent(reason)}`, {method:'PATCH',headers:{'x-admin-secret':SECRET}});
+    closeKyc();
+    loadRiders();
+  } catch(e) { alert('Erreur : '+e.message); }
+}
+
+async function toggleBlock(userId, name) {
+  if (!confirm(`Bloquer/débloquer ${name} ?`)) return;
+  try {
+    await fetch(`${API}/admin/riders/${userId}/block`, {method:'PATCH',headers:{'x-admin-secret':SECRET}});
+    loadRiders();
+  } catch(e) { alert('Erreur : '+e.message); }
+}
+
+async function loadOrders() {
+  const el = document.getElementById('orders-table');
+  el.innerHTML = '<div class="loading">Chargement...</div>';
+  try {
+    const orders = await adminGet('/admin/orders');
+    if (!orders.length) { el.innerHTML='<div class="empty">Aucune commande</div>'; return; }
+    el.innerHTML = `<table>
+      <thead><tr><th>#</th><th>Client</th><th>Livreur</th><th>Ramassage</th><th>Livraison</th><th>Montant</th><th>Commission</th><th>Statut</th><th>Date</th></tr></thead>
+      <tbody>${orders.map(o=>`<tr>
+        <td style="color:var(--muted)">#${o.id}</td>
+        <td>#${o.client_id}</td>
+        <td>${o.rider_id?'#'+o.rider_id:'—'}</td>
+        <td>${fmtAddr(o.pickup_address)}</td>
+        <td>${fmtAddr(o.delivery_address)}</td>
+        <td>${o.amount?o.amount.toLocaleString()+' F':'—'}</td>
+        <td>${o.commission?o.commission.toLocaleString()+' F':'—'}</td>
+        <td>${statusBadge(o.status)}</td>
+        <td style="color:var(--muted)">${fmtDate(o.created_at)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty">Erreur : ${e.message}</div>`;
+  }
+}
+
+async function loadDisputes() {
+  const el = document.getElementById('disputes-table');
+  el.innerHTML = '<div class="loading">Chargement...</div>';
+  try {
+    const disputes = await adminGet('/admin/disputes');
+    if (!disputes.length) { el.innerHTML='<div class="empty">Aucun litige</div>'; return; }
+    el.innerHTML = `<table>
+      <thead><tr><th>#</th><th>Commande</th><th>Plaignant</th><th>Raison</th><th>Statut</th><th>Expire</th><th>Actions</th></tr></thead>
+      <tbody>${disputes.map(d=>`<tr>
+        <td style="color:var(--muted)">#${d.id}</td>
+        <td>#${d.order_id}</td>
+        <td>#${d.complainant_id}</td>
+        <td>${d.reason}</td>
+        <td>${statusBadge(d.status)}</td>
+        <td style="color:var(--muted)">${fmtDate(d.expires_at)}</td>
+        <td style="display:flex;gap:6px">${d.status==='open'?`
+          <button class="btn-sm btn-blue" onclick="resolveDispute(${d.id},'resolved')">Résoudre</button>
+          <button class="btn-sm btn-red" onclick="resolveDispute(${d.id},'rejected')">Rejeter</button>
+        `:'—'}</td>
+      </tr>`).join('')}</tbody></table>`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty">Erreur : ${e.message}</div>`;
+  }
+}
+
+async function resolveDispute(id, status) {
+  const note = prompt(`Note de ${status==='resolved'?'résolution':'rejet'} :`);
+  if (!note) return;
+  try {
+    await fetch(`${API}/admin/disputes/${id}/resolve`, {
+      method:'PATCH',
+      headers:{'x-admin-secret':SECRET,'Content-Type':'application/json'},
+      body:JSON.stringify({status,resolution_note:note})
+    });
+    loadDisputes(); loadDashboard();
+  } catch(e) { alert('Erreur : '+e.message); }
+}
+
+document.getElementById('kyc-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeKyc();
+});
+</script>
+</body>
+</html>
