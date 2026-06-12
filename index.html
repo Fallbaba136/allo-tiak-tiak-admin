@@ -312,6 +312,31 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
       </div>
     </div>
 
+    <div class="db-actions-bar" style="margin-bottom:1.5rem">
+      <div class="db-actions-title" style="color:var(--danger)">🧹 Nettoyage de la base</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div style="background:#222;border-radius:8px;padding:14px">
+          <div class="db-action-label" style="margin-bottom:6px">Commandes annulées</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Supprime toutes les commandes avec statut cancelled</div>
+          <button class="db-action-btn btn-red" onclick="cleanCancelled()">🗑 Supprimer annulées</button>
+        </div>
+        <div style="background:#222;border-radius:8px;padding:14px">
+          <div class="db-action-label" style="margin-bottom:6px">Commandes pending expirées</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Supprime les commandes pending depuis plus de 24h</div>
+          <button class="db-action-btn btn-yellow" onclick="cleanExpiredPending()">⏰ Supprimer expirées</button>
+        </div>
+        <div style="background:#222;border-radius:8px;padding:14px">
+          <div class="db-action-label" style="margin-bottom:6px">Propositions orphelines</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Supprime les propositions des commandes fermées</div>
+          <button class="db-action-btn btn-blue" onclick="cleanOrphanProposals()">🔧 Nettoyer propositions</button>
+        </div>
+        <div style="background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.3);border-radius:8px;padding:14px">
+          <div class="db-action-label" style="margin-bottom:6px;color:var(--danger)">⚠️ Reset commandes test</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Supprime TOUTES les commandes sauf confirmed. Irréversible.</div>
+          <button class="db-action-btn btn-red" onclick="resetTestOrders()">💥 Reset test</button>
+        </div>
+      </div>
+    </div>
     <div class="section-label">Tables de la base de données</div>
     <div class="db-tables-grid" id="db-tables-grid"><div class="loading">Chargement...</div></div>
     <div id="db-table-content"></div>
@@ -668,6 +693,41 @@ async function forceStatusFromModal(orderId){
     alert('Statut mis à jour');
     closeModal();
     loadOrders();
+  }catch(e){alert('Erreur : '+e.message);}
+}
+
+async function cleanCancelled(){
+  try{
+    const r=await fetch(API+'/admin/db/clean/cancelled',{method:'DELETE',headers:{'x-admin-secret':SECRET}});
+    const d=await r.json();
+    alert(d.deleted+' commande(s) annulée(s) supprimée(s)');
+    loadOrders();loadDashboard();
+  }catch(e){alert('Erreur : '+e.message);}
+}
+
+async function cleanExpiredPending(){
+  try{
+    const r=await fetch(API+'/admin/db/clean/expired-pending',{method:'DELETE',headers:{'x-admin-secret':SECRET}});
+    const d=await r.json();
+    alert(d.deleted+' commande(s) expirée(s) supprimée(s)');
+    loadOrders();loadDashboard();
+  }catch(e){alert('Erreur : '+e.message);}
+}
+
+async function cleanOrphanProposals(){
+  try{
+    const r=await fetch(API+'/admin/db/clean/orphan-proposals',{method:'DELETE',headers:{'x-admin-secret':SECRET}});
+    const d=await r.json();
+    alert(d.deleted+' proposition(s) orpheline(s) supprimée(s)');
+  }catch(e){alert('Erreur : '+e.message);}
+}
+
+async function resetTestOrders(){
+  try{
+    const r=await fetch(API+'/admin/db/clean/test-orders',{method:'DELETE',headers:{'x-admin-secret':SECRET}});
+    const d=await r.json();
+    alert(d.deleted+' commande(s) supprimée(s)');
+    loadOrders();loadDashboard();
   }catch(e){alert('Erreur : '+e.message);}
 }
 
