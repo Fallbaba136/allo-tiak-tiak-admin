@@ -475,12 +475,61 @@ async function loadDisputes(){
   const el=document.getElementById('disputes-table');el.innerHTML='<div class="loading">Chargement...</div>';
   try{
     const disputes=await adminGet('/admin/disputes');
-    if(!disputes.length){el.innerHTML='<div class="empty">Aucun litige</div>';return;}
-    el.innerHTML=`<table><thead><tr><th>#</th><th>Commande</th><th>Plaignant</th><th>Raison</th><th>Statut</th><th>Expire</th><th>Actions</th></tr></thead>
-    <tbody>${disputes.map(d=>`<tr><td style="color:var(--muted)">#${d.id}</td><td>#${d.order_id}</td><td>#${d.complainant_id}</td><td>${d.reason}</td><td>${statusBadge(d.status)}</td><td style="color:var(--muted)">${fmtDate(d.expires_at)}</td><td style="display:flex;gap:6px">${d.status==='open'?`<button class="btn-sm btn-blue" onclick="resolveDispute(${d.id},'resolved')">Résoudre</button><button class="btn-sm btn-red" onclick="resolveDispute(${d.id},'rejected')">Rejeter</button>`:'—'}</td></tr>`).join('')}</tbody></table>`;
+    if(disputes.length===0){el.innerHTML='<div class="empty">Aucun litige</div>';return;}
+    el.innerHTML=`<table><thead><tr><th>#</th><th>Commande</th><th>Motif</th><th>Statut</th><th>Date</th><th>Actions</th></tr></thead>
+    <tbody>${disputes.map(d=>`<tr>
+      <td style="color:var(--muted)">#${d.id}</td>
+      <td>#${d.order_id}</td>
+      <td>${d.reason}</td>
+      <td>${statusBadge(d.status)}</td>
+      <td style="color:var(--muted)">${fmtDate(d.expires_at)}</td>
+      <td><button class="btn-sm btn-blue" onclick='openDisputeModal(${JSON.stringify(JSON.stringify(d))})'>Examiner</button></td>
+    </tr>`).join('')}</tbody></table>`;
   }catch(e){el.innerHTML=`<div class="empty">Erreur : ${e.message}</div>`;}
 }
-async function resolveDispute(id,status){const note=prompt('Note de '+(status==='resolved'?'résolution':'rejet')+' :');if(!note)return;try{await adminReq('/admin/disputes/'+id+'/resolve','PATCH',{status,resolution_note:note});loadDisputes();loadDashboard();}catch(e){alert('Erreur : '+e.message);}}
+
+async function openDisputeModal(dJson){
+  const d=JSON.parse(dJson);
+  document.getElementById('modal-title').textContent='Litige #'+d.id+' — Commande #'+d.order_id;
+  const isOpen=d.status==='open'||d.status==='under_review';
+  document.getElementById('modal-body').innerHTML=`
+    <div class="modal-info">
+      <div class="info-row"><div class="lbl">Statut</div><div class="val">${statusBadge(d.status)}</div></div>
+      <div class="info-row"><div class="lbl">Motif</div><div class="val">${d.reason}</div></div>
+      <div class="info-row"><div class="lbl">Plaignant</div><div class="val">#${d.complainant_id}</div></div>
+      <div class="info-row"><div class="lbl">Accuse</div><div class="val">#${d.accused_id}</div></div>
+      <div class="info-row"><div class="lbl">Commande</div><div class="val">#${d.order_id}</div></div>
+      <div class="info-row"><div class="lbl">Expire</div><div class="val">${fmtDate(d.expires_at)}</div></div>
+    </div>
+    <div class="modal-section">Description</div>
+    <div style="background:#222;border-radius:8px;padding:14px;margin-bottom:1.5rem;font-size:13px;line-height:1.6">${d.description||'Aucune description'}</div>
+    ${isOpen?`
+    <div class="modal-section">Resolution</div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Note de resolution</label>
+      <textarea id="dispute-note" style="width:100%;margin-top:6px;padding:10px;background:#222;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;min-height:80px;resize:vertical" placeholder="Expliquez votre decision..."></textarea>
+    </div>
+    <div class="action-group" style="gap:8px">
+      <button class="btn-sm btn-green" onclick="resolveDispute(${d.id},'resolved')">En faveur du client</button>
+      <button class="btn-sm btn-red" onclick="resolveDispute(${d.id},'rejected')">Rejeter le litige</button>
+    </div>`:'<span class="badge bg">Litige deja resolu</span>'}
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+
+async function resolveDispute(id,status){
+  const noteEl=document.getElementById('dispute-note');
+  const note=noteEl?noteEl.value.trim():'';
+  if(note.length<5){alert('Veuillez entrer une note de resolution');return;}
+  if(!confirm('Confirmer la decision ?'))return;
+  try{
+    await adminReq('/admin/disputes/'+id+'/resolve','PATCH',{status,resolution_note:note});
+    closeModal();
+    loadDisputes();
+    loadDashboard();
+    alert('Litige resolu avec succes');
+  }catch(e){alert('Erreur : '+e.message);}
+}
 
 function renderMonthlyCharts(s){
   const maxBar=Math.max(s.total_orders,1);
