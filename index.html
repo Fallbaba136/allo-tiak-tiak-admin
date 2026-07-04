@@ -495,13 +495,22 @@ async function openDisputeModal(dJson){
   document.getElementById('modal-body').innerHTML=`
     <div class="modal-info">
       <div class="info-row"><div class="lbl">Statut</div><div class="val">${statusBadge(d.status)}</div></div>
-      <div class="info-row"><div class="lbl">Motif</div><div class="val">${d.reason}</div></div>
-      <div class="info-row"><div class="lbl">Plaignant</div><div class="val">#${d.complainant_id}</div></div>
-      <div class="info-row"><div class="lbl">Accuse</div><div class="val">#${d.accused_id}</div></div>
       <div class="info-row"><div class="lbl">Commande</div><div class="val">#${d.order_id}</div></div>
+      <div class="info-row"><div class="lbl">Motif</div><div class="val">${d.reason}</div></div>
       <div class="info-row"><div class="lbl">Expire</div><div class="val">${fmtDate(d.expires_at)}</div></div>
     </div>
-    <div class="modal-section">Description</div>
+    <div class="modal-section">Client (plaignant)</div>
+    <div class="modal-info">
+      <div class="info-row"><div class="lbl">Nom</div><div class="val">${d.client_name||'—'}</div></div>
+      <div class="info-row"><div class="lbl">Telephone</div><div class="val">${d.client_phone||'—'}</div></div>
+      <div class="info-row"><div class="lbl">Adresse</div><div class="val">${d.client_address||'—'}</div></div>
+    </div>
+    <div class="modal-section">Livreur (accuse)</div>
+    <div class="modal-info">
+      <div class="info-row"><div class="lbl">Nom</div><div class="val">${d.rider_name||'—'}</div></div>
+      <div class="info-row"><div class="lbl">Telephone</div><div class="val">${d.rider_phone||'—'}</div></div>
+    </div>
+    <div class="modal-section">Description du plaignant</div>
     <div style="background:#222;border-radius:8px;padding:14px;margin-bottom:1.5rem;font-size:13px;line-height:1.6">${d.description||'Aucune description'}</div>
     ${isOpen?`
     <div class="modal-section">Resolution</div>
