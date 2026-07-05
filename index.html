@@ -745,6 +745,19 @@ async function openOrderModal(oJson){
   document.getElementById('admin-order-status').value=o.status;
 }
 
+async function assignRider(orderId){
+  const riderId=document.getElementById('admin-rider-id')?.value?.trim();
+  if(!riderId){alert('Entrez l\'ID du livreur');return;}
+  if(!confirm('Assigner le livreur #'+riderId+' a la commande #'+orderId+' ?'))return;
+  try{
+    const r=await fetch(API+'/admin/orders/'+orderId+'/assign-rider?rider_id='+riderId,{method:'PATCH',headers:{'x-admin-secret':SECRET}});
+    if(!r.ok)throw new Error(await r.text());
+    alert('Livreur assigne avec succes !');
+    closeModal();
+    loadOrders();
+  }catch(e){alert('Erreur : '+e.message);}
+}
+
 async function forceStatusFromModal(orderId){
   const status=document.getElementById('admin-order-status').value;
   try{
