@@ -719,6 +719,68 @@ async function forceAvailability(){
   }catch(e){alert('Erreur : '+e.message);}
 }
 
+async function openUserModal(userId, role){
+  document.getElementById('modal-title').textContent=(role==='rider'?'Livreur':'Client')+' #'+userId;
+  document.getElementById('modal-body').innerHTML='<div class="loading">Chargement...</div>';
+  document.getElementById('modal').classList.add('open');
+  try{
+    const d=await adminGet('/admin/users/'+userId+'/details');
+    document.getElementById('modal-body').innerHTML=`
+      <div class="modal-section">Informations</div>
+      <div class="modal-info">
+        <div class="info-row"><div class="lbl">Telephone</div><div class="val">${d.phone}</div></div>
+        <div class="info-row"><div class="lbl">Role</div><div class="val">${d.role}</div></div>
+        <div class="info-row"><div class="lbl">Nom</div><div class="val">${d.client_name||d.rider_name||'—'}</div></div>
+        <div class="info-row"><div class="lbl">Adresse/Zone</div><div class="val">${d.client_address||d.rider_zone||'—'}</div></div>
+        ${d.role==='rider'?`
+        <div class="info-row"><div class="lbl">KYC verifie</div><div class="val">${d.rider_is_verified?'✅ Oui':'❌ Non'}</div></div>
+        <div class="info-row"><div class="lbl">Bloque</div><div class="val">${d.rider_is_blocked?'🔴 Oui':'🟢 Non'}</div></div>
+        `:''}
+        ${d.average_rating?`<div class="info-row"><div class="lbl">Note</div><div class="val">⭐ ${d.average_rating} (${d.total_reviews} avis)</div></div>`:''}
+      </div>
+      <div class="modal-section">Statistiques</div>
+      <div class="modal-info">
+        <div class="info-row"><div class="lbl">Total commandes</div><div class="val">${d.total_orders}</div></div>
+        <div class="info-row"><div class="lbl">Confirmees</div><div class="val">${d.confirmed_orders}</div></div>
+        <div class="info-row"><div class="lbl">Annulees</div><div class="val">${d.cancelled_orders}</div></div>
+        ${d.role==='client'?`<div class="info-row"><div class="lbl">Total depense</div><div class="val">${Math.round(d.total_spent).toLocaleString()} FCFA</div></div>`:''}
+        ${d.role==='rider'?`<div class="info-row"><div class="lbl">Total gagne</div><div class="val">${Math.round(d.total_earned).toLocaleString()} FCFA</div></div>`:''}
+      </div>
+      <div class="modal-section">10 dernieres commandes</div>
+      <table style="width:100%;border-collapse:collapse;background:#222;border-radius:8px;overflow:hidden">
+        <thead><tr>
+          <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--muted)">#</th>
+          <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--muted)">Type</th>
+          <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--muted)">Montant</th>
+          <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--muted)">Statut</th>
+        </tr></thead>
+        <tbody>${d.recent_orders.map(o=>`<tr style="border-top:1px solid var(--border)">
+          <td style="padding:8px 12px;font-size:12px;color:var(--muted)">#${o.id}</td>
+          <td style="padding:8px 12px;font-size:12px">${o.order_type==='transport'?'🏍️':'📦'}</td>
+          <td style="padding:8px 12px;font-size:12px;color:var(--green)">${o.amount?o.amount.toLocaleString()+' F':'—'}</td>
+          <td style="padding:8px 12px">${statusBadge(o.status)}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+      <div class="modal-section">Actions</div>
+      <div class="action-group">
+        <button class="btn-sm btn-red" onclick="deleteUser(${userId})">🗑 Supprimer ce compte</button>
+      </div>
+    `;
+  }catch(e){document.getElementById('modal-body').innerHTML=`<div class="empty">Erreur : ${e.message}</div>`;}
+}
+
+async function deleteUser(userId){
+  if(!confirm('Supprimer definitivement ce compte ? Cette action est irreversible.'))return;
+  if(!confirm('Derniere confirmation — toutes les donnees seront perdues.'))return;
+  try{
+    await adminReq('/admin/users/'+userId,'DELETE',{});
+    closeModal();
+    loadClients();
+    loadRiders();
+    alert('Compte supprime.');
+  }catch(e){alert('Erreur : '+e.message);}
+}
+
 async function openOrderModal(oJson){
   const o=JSON.parse(oJson);
   document.getElementById('modal-title').textContent='Commande #'+o.id;
