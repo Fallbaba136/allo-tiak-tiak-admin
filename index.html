@@ -414,7 +414,7 @@ async function loadRiders(){
     const riders=await adminGet('/admin/riders');allRiders=riders;
     if(!riders.length){el.innerHTML='<div class="empty">Aucun livreur</div>';return;}
     el.innerHTML=`<table><thead><tr><th>Nom</th><th>Téléphone</th><th>Zone</th><th>Services</th><th>KYC</th><th>Disponible</th><th>Bloqué</th><th>Actions</th></tr></thead>
-    <tbody>${riders.map(r=>`<tr><td>${r.full_name||'—'}</td><td style="color:var(--muted)">${r.phone}</td><td>${r.zone||'—'}</td><td><span class="badge bm">${r.services||'delivery'}</span></td><td>${kycBadge(r.kyc_status)}</td><td>${r.is_available?'<span class="badge bg">Oui</span>':'<span class="badge bm">Non</span>'}</td><td>${r.is_blocked?'<span class="badge br">Bloqué</span>':'<span class="badge bm">Non</span>'}</td><td><button class="btn-sm btn-blue" onclick='openRiderModal(${JSON.stringify(JSON.stringify(r))})'>Gérer</button></td></tr>`).join('')}</tbody></table>`;
+    <tbody>${riders.map(r=>`<tr><td>${r.full_name||'—'}</td><td style="color:var(--muted)">${r.phone}</td><td>${r.zone||'—'}</td><td><span class="badge bm">${r.services||'delivery'}</span></td><td>${kycBadge(r.kyc_status)}</td><td>${r.is_available?'<span class="badge bg">Oui</span>':'<span class="badge bm">Non</span>'}</td><td>${r.is_blocked?'<span class="badge br">Bloqué</span>':'<span class="badge bm">Non</span>'}</td><td style="display:flex;gap:6px"><button class="btn-sm btn-blue" onclick='openRiderModal(${JSON.stringify(JSON.stringify(r))})'>Gérer</button><button class="btn-sm btn-green" onclick="openUserModal(${r.user_id||r.id},'rider')">Détail</button></td></tr>`).join('')}</tbody></table>`;
   }catch(e){el.innerHTML=`<div class="empty">Erreur : ${e.message}</div>`;}
 }
 
@@ -461,7 +461,7 @@ async function loadClients(){
     const clients=await adminGet('/admin/clients');
     if(!clients.length){el.innerHTML='<div class="empty">Aucun client</div>';return;}
     el.innerHTML=`<table><thead><tr><th>Nom</th><th>Téléphone</th><th>Adresse</th><th>Inscrit le</th><th>Actions</th></tr></thead>
-    <tbody>${clients.map(c=>`<tr><td>${c.full_name||'—'}</td><td style="color:var(--muted)">${c.phone}</td><td>${c.address||'—'}</td><td style="color:var(--muted)">${fmtDate(c.created_at)}</td><td><button class="btn-sm btn-red" onclick="deleteClient(${c.user_id},'${(c.full_name||c.phone).replace(/'/g,'')}')">🗑 Supprimer</button></td></tr>`).join('')}</tbody></table>`;
+    <tbody>${clients.map(c=>`<tr><td>${c.full_name||'—'}</td><td style="color:var(--muted)">${c.phone}</td><td>${c.address||'—'}</td><td style="color:var(--muted)">${fmtDate(c.created_at)}</td><td style="display:flex;gap:6px"><button class="btn-sm btn-blue" onclick="openUserModal(${c.user_id},'client')">Détail</button><button class="btn-sm btn-red" onclick="deleteClient(${c.user_id},'${(c.full_name||c.phone).replace(/'/g,'')}')">🗑</button></td></tr>`).join('')}</tbody></table>`;
   }catch(e){el.innerHTML=`<div class="empty">Erreur : ${e.message}</div>`;}
 }
 async function deleteClient(userId,name){if(!confirm('Supprimer le client '+name+' ?'))return;try{await adminReq('/admin/clients/'+userId,'DELETE');loadClients();}catch(e){alert('Erreur : '+e.message);}}
