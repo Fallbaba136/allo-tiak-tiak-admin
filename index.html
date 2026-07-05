@@ -164,6 +164,7 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
       Commandes
     </a>
+    <a href="#" onclick="return nav('finance',this)">💰 Finance</a>
     <a href="#" onclick="return nav('disputes',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
       Litiges
@@ -220,6 +221,10 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
     <div class="table-wrap" id="orders-table"><div class="loading">Chargement...</div></div>
   </div>
 
+  <div id="page-finance" class="page">
+    <div class="page-header"><h1>Finance</h1><button class="refresh-btn" onclick="loadFinance()">↻ Actualiser</button></div>
+    <div id="finance-content"><div class="loading">Chargement...</div></div>
+  </div>
   <div id="page-disputes" class="page">
     <div class="page-header"><h1>Litiges</h1><button class="refresh-btn" onclick="loadDisputes()">↻ Actualiser</button></div>
     <div class="table-wrap" id="disputes-table"><div class="loading">Chargement...</div></div>
@@ -353,7 +358,7 @@ function login(){
   SECRET=v;
   adminGet('/admin/stats').then(r=>{
     document.getElementById('login-screen').style.display='none';
-    applyStats(r);loadDashboard();loadRiders();loadClients();loadOrders();loadDisputes();
+    applyStats(r);loadDashboard();loadRiders();loadClients();loadOrders();loadDisputes();loadFinance();
   }).catch(()=>{SECRET='';document.getElementById('error-msg').textContent='Clé invalide';});
 }
 function logout(){SECRET='';document.getElementById('login-screen').style.display='flex';document.getElementById('secret-input').value='';}
@@ -468,6 +473,34 @@ async function loadOrders(){
     if(!orders.length){el.innerHTML='<div class="empty">Aucune commande</div>';return;}
     el.innerHTML=`<table><thead><tr><th>#</th><th>Client</th><th>Livreur</th><th>Ramassage</th><th>Livraison</th><th>Type</th><th>Montant</th><th>Commission</th><th>Statut</th><th>Date</th><th>Actions</th></tr></thead>
     <tbody>${orders.map(o=>`<tr><td style="color:var(--muted)">#${o.id}</td><td>${o.client_name||('#'+o.client_id)}</td><td>${o.rider_id?('#'+o.rider_id):'<span class="badge by">Auto</span>'}</td><td>${fmtAddr(o.pickup_address)}</td><td>${fmtAddr(o.delivery_address)}</td><td><span class="badge bm">${o.order_type==='transport'?'🏍️':'📦'}</span></td><td>${o.amount?o.amount.toLocaleString()+' F':'—'}</td><td>${o.commission?o.commission.toLocaleString()+' F':'—'}</td><td>${statusBadge(o.status)}</td><td style="color:var(--muted)">${fmtDate(o.created_at)}</td><td><button class="btn-sm btn-blue" onclick='openOrderModal(${JSON.stringify(JSON.stringify(o))})'>Détail</button></td></tr>`).join('')}</tbody></table>`;
+  }catch(e){el.innerHTML=`<div class="empty">Erreur : ${e.message}</div>`;}
+}
+
+async function loadFinance(){
+  const el=document.getElementById('finance-content');
+  el.innerHTML='<div class="loading">Chargement...</div>';
+  try{
+    const d=await adminGet('/admin/stats/finance');
+    el.innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:2rem">
+        ${[
+          {label:'Aujourd\'hui',data:d.today},
+          {label:'Cette semaine',data:d.week},
+          {label:'Ce mois',data:d.month},
+          {label:'Total',data:d.all_time},
+        ].map(p=>`
+          <div style="background:#1a1a1a;border-radius:12px;padding:20px;border:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">${p.label}</div>
+            <div style="font-size:24px;font-weight:700;color:var(--green);margin-bottom:4px">${Math.round(p.data.total_commission).toLocaleString()} F</div>
+            <div style="font-size:12px;color:var(--muted)">Commission</div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+              <div style="font-size:14px;color:var(--text)">${Math.round(p.data.total_amount).toLocaleString()} F</div>
+              <div style="font-size:11px;color:var(--muted)">${p.data.count} commande${p.data.count>1?'s':''} confirmée${p.data.count>1?'s':''}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
   }catch(e){el.innerHTML=`<div class="empty">Erreur : ${e.message}</div>`;}
 }
 
