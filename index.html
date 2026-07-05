@@ -719,6 +719,12 @@ async function forceAvailability(){
   }catch(e){alert('Erreur : '+e.message);}
 }
 
+function whatsapp(phone, name, context){
+  const msg = encodeURIComponent('Bonjour ' + (name||'') + ', je suis l\'équipe Allô Tiak-Tiak. ' + (context||''));
+  const number = phone.replace('+','').replace(/\s/g,'');
+  window.open('https://wa.me/'+number+'?text='+msg, '_blank');
+}
+
 async function openUserModal(userId, role){
   document.getElementById('modal-title').textContent=(role==='rider'?'Livreur':'Client')+' #'+userId;
   document.getElementById('modal-body').innerHTML='<div class="loading">Chargement...</div>';
@@ -762,8 +768,9 @@ async function openUserModal(userId, role){
         </tr>`).join('')}</tbody>
       </table>
       <div class="modal-section">Actions</div>
-      <div class="action-group">
-        <button class="btn-sm btn-red" onclick="deleteUser(${userId})">🗑 Supprimer ce compte</button>
+      <div class="action-group" style="flex-wrap:wrap;gap:8px">
+        <button class="btn-sm btn-green" onclick="whatsapp('${d.phone}','${d.client_name||d.rider_name||''}','Comment puis-je vous aider ?')">💬 WhatsApp</button>
+        <button class="btn-sm btn-red" onclick="deleteUser(${userId})">🗑 Supprimer</button>
       </div>
     `;
   }catch(e){document.getElementById('modal-body').innerHTML=`<div class="empty">Erreur : ${e.message}</div>`;}
@@ -818,6 +825,11 @@ async function openOrderModal(oJson){
       <div class="info-row"><div class="lbl">ID Livreur</div><div class="val">#${o.rider_id}</div></div>
       <div class="info-row"><div class="lbl">Acceptée le</div><div class="val">${fmtDate(o.accepted_at)}</div></div>
     </div>`:''}
+    <div class="modal-section">Contacter</div>
+    <div class="action-group" style="flex-wrap:wrap;gap:8px">
+      ${o.client_phone?`<button class="btn-sm btn-green" onclick="whatsapp('${o.client_phone}','${o.client_name||''}','Concernant votre commande #${o.id}')">💬 WhatsApp Client</button>`:''}
+      ${o.rider_id?`<button class="btn-sm btn-blue" onclick="openUserModal(${o.rider_id},'rider')">🏍️ Voir livreur</button>`:''}
+    </div>
     ${proposals.length?`
     <div class="modal-section">Propositions de prix (${proposals.length})</div>
     <table style="width:100%;border-collapse:collapse;background:#222;border-radius:8px;overflow:hidden">
