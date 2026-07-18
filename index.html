@@ -548,20 +548,49 @@ async function openDisputeModal(dJson){
     ${d.photo_url?`<div class="modal-section">Photo jointe</div><img src="${d.photo_url}" onclick="window.open('${d.photo_url}','_blank')" style="width:100%;max-height:300px;object-fit:cover;border-radius:8px;cursor:pointer;margin-bottom:1.5rem" />`:'' }
     ${d.client_response?`<div class="modal-section">Réponse du client</div><div style="background:#1a2a1a;border:1px solid #2a4a2a;border-radius:8px;padding:14px;margin-bottom:1.5rem;font-size:13px;line-height:1.6;color:#00C853">${d.client_response}</div>`:''}
     ${d.rider_response?`<div class="modal-section">Réponse du livreur</div><div style="background:#1a1a2a;border:1px solid #2a2a4a;border-radius:8px;padding:14px;margin-bottom:1.5rem;font-size:13px;line-height:1.6;color:#378ADD">${d.rider_response}</div>`:''}
-    ${d.resolution_favor?`<div class="modal-section">Décision</div><div style="background:#1a2a1a;border-radius:8px;padding:14px;margin-bottom:1rem;font-size:13px;color:#00C853">En faveur du : ${d.resolution_favor==='client'?'👤 Client':'🏍️ Livreur'}<br/>${d.resolution_note||''}</div>`:''}
+    ${d.resolution_favor?`<div class="modal-section">✅ Décision rendue</div><div style="background:#1a2a1a;border-radius:8px;padding:14px;margin-bottom:1rem;font-size:13px;color:#00C853">En faveur du : ${d.resolution_favor==='client'?'👤 Client':'🏍️ Livreur'}<br/><span style="color:#777">${d.resolution_note||''}</span></div>`:''}
+    ${d.order_traces?`
+    <div class="modal-section">📋 Traces de la commande</div>
+    <div class="modal-info">
+      <div class="info-row"><div class="lbl">Montant</div><div class="val">${d.order_traces.amount?.toLocaleString()} FCFA</div></div>
+      <div class="info-row"><div class="lbl">Statut</div><div class="val">${statusBadge(d.order_traces.status)}</div></div>
+      <div class="info-row"><div class="lbl">Paiement</div><div class="val" style="color:${d.order_traces.payment_status==='paid'?'#00C853':'#FFD600'}">${d.order_traces.payment_status==='paid'?'✅ Payé':'⏳ Non confirmé'}</div></div>
+      <div class="info-row"><div class="lbl">Méthode</div><div class="val">${d.order_traces.payment_method||'—'}</div></div>
+      <div class="info-row"><div class="lbl">Code livraison</div><div class="val" style="color:${d.order_traces.delivery_code_used?'#00C853':'#FF4444'}">${d.order_traces.delivery_code_used?'✅ Code validé':'❌ Code non validé'}</div></div>
+      <div class="info-row"><div class="lbl">Commande créée</div><div class="val">${fmtDate(d.order_traces.created_at)}</div></div>
+      <div class="info-row"><div class="lbl">Acceptée</div><div class="val">${d.order_traces.accepted_at?fmtDate(d.order_traces.accepted_at):'—'}</div></div>
+      <div class="info-row"><div class="lbl">Ramassage</div><div class="val">${d.order_traces.picked_up_at?fmtDate(d.order_traces.picked_up_at):'—'}</div></div>
+      <div class="info-row"><div class="lbl">Livraison</div><div class="val">${d.order_traces.delivered_at?fmtDate(d.order_traces.delivered_at):'—'}</div></div>
+      <div class="info-row"><div class="lbl">Paiement confirmé</div><div class="val">${d.order_traces.payment_confirmed_at?fmtDate(d.order_traces.payment_confirmed_at):'—'}</div></div>
+      <div class="info-row"><div class="lbl">Départ</div><div class="val">${d.order_traces.pickup_address||'—'}</div></div>
+      <div class="info-row"><div class="lbl">Arrivée</div><div class="val">${d.order_traces.delivery_address||'—'}</div></div>
+    </div>`:''}
     ${isOpen?`
-    <div class="modal-section">Resolution</div>
+    <div class="modal-section">⚖️ Votre décision</div>
     <div style="margin-bottom:10px">
-      <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Note de resolution</label>
+      <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Note de résolution</label>
       <textarea id="dispute-note" style="width:100%;margin-top:6px;padding:10px;background:#222;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;min-height:80px;resize:vertical" placeholder="Expliquez votre decision..."></textarea>
     </div>
     <div class="action-group" style="gap:8px">
       <button class="btn-sm btn-green" onclick="resolveDispute(${d.id},'client')">✅ En faveur du client</button>
       <button class="btn-sm btn-blue" onclick="resolveDispute(${d.id},'rider')">🏍️ En faveur du livreur</button>
-      <button class="btn-sm btn-red" onclick="resolveDispute(${d.id},'rejected')">❌ Rejeter</button>
-    </div>`:'<span class="badge bg">Litige deja resolu</span>'}
+      <button class="btn-sm btn-red" onclick="resolveDispute(${d.id},'rejected')">❌ Rejeter le litige</button>
+    </div>`:`
+    <div class="action-group" style="gap:8px;margin-top:1rem">
+      <button class="btn-sm" style="background:#333;color:#777" onclick="closeDispute(${d.id})">🔒 Fermer le dossier</button>
+    </div>`}
   `;
   document.getElementById('modal').classList.add('open');
+}
+
+async function closeDispute(id){
+  if(!confirm('Fermer definitivement ce litige ?'))return;
+  try{
+    await adminReq('/admin/disputes/'+id+'/resolve','PATCH',{status:'closed',resolution_note:'Dossier ferme par admin'});
+    closeModal();
+    loadDisputes();
+    alert('Litige ferme');
+  }catch(e){alert('Erreur : '+e.message);}
 }
 
 async function resolveDispute(id, favor){
