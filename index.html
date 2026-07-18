@@ -546,6 +546,9 @@ async function openDisputeModal(dJson){
     <div class="modal-section">Description du plaignant</div>
     <div style="background:#222;border-radius:8px;padding:14px;margin-bottom:1.5rem;font-size:13px;line-height:1.6">${d.description||'Aucune description'}</div>
     ${d.photo_url?`<div class="modal-section">Photo jointe</div><img src="${d.photo_url}" onclick="window.open('${d.photo_url}','_blank')" style="width:100%;max-height:300px;object-fit:cover;border-radius:8px;cursor:pointer;margin-bottom:1.5rem" />`:'' }
+    ${d.client_response?`<div class="modal-section">Réponse du client</div><div style="background:#1a2a1a;border:1px solid #2a4a2a;border-radius:8px;padding:14px;margin-bottom:1.5rem;font-size:13px;line-height:1.6;color:#00C853">${d.client_response}</div>`:''}
+    ${d.rider_response?`<div class="modal-section">Réponse du livreur</div><div style="background:#1a1a2a;border:1px solid #2a2a4a;border-radius:8px;padding:14px;margin-bottom:1.5rem;font-size:13px;line-height:1.6;color:#378ADD">${d.rider_response}</div>`:''}
+    ${d.resolution_favor?`<div class="modal-section">Décision</div><div style="background:#1a2a1a;border-radius:8px;padding:14px;margin-bottom:1rem;font-size:13px;color:#00C853">En faveur du : ${d.resolution_favor==='client'?'👤 Client':'🏍️ Livreur'}<br/>${d.resolution_note||''}</div>`:''}
     ${isOpen?`
     <div class="modal-section">Resolution</div>
     <div style="margin-bottom:10px">
@@ -553,20 +556,25 @@ async function openDisputeModal(dJson){
       <textarea id="dispute-note" style="width:100%;margin-top:6px;padding:10px;background:#222;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;min-height:80px;resize:vertical" placeholder="Expliquez votre decision..."></textarea>
     </div>
     <div class="action-group" style="gap:8px">
-      <button class="btn-sm btn-green" onclick="resolveDispute(${d.id},'resolved')">En faveur du client</button>
-      <button class="btn-sm btn-red" onclick="resolveDispute(${d.id},'rejected')">Rejeter le litige</button>
+      <button class="btn-sm btn-green" onclick="resolveDispute(${d.id},'client')">✅ En faveur du client</button>
+      <button class="btn-sm btn-blue" onclick="resolveDispute(${d.id},'rider')">🏍️ En faveur du livreur</button>
+      <button class="btn-sm btn-red" onclick="resolveDispute(${d.id},'rejected')">❌ Rejeter</button>
     </div>`:'<span class="badge bg">Litige deja resolu</span>'}
   `;
   document.getElementById('modal').classList.add('open');
 }
 
-async function resolveDispute(id,status){
+async function resolveDispute(id, favor){
   const noteEl=document.getElementById('dispute-note');
   const note=noteEl?noteEl.value.trim():'';
   if(note.length<5){alert('Veuillez entrer une note de resolution');return;}
   if(!confirm('Confirmer la decision ?'))return;
   try{
-    await adminReq('/admin/disputes/'+id+'/resolve','PATCH',{status,resolution_note:note});
+    if(favor === 'rejected'){
+      await adminReq('/admin/disputes/'+id+'/resolve','PATCH',{status:'rejected',resolution_note:note});
+    } else {
+      await adminReq('/disputes/'+id+'/admin-resolve?resolution_note='+encodeURIComponent(note)+'&resolution_favor='+favor,'PATCH',{});
+    }
     closeModal();
     loadDisputes();
     loadDashboard();
