@@ -550,7 +550,7 @@ async function openDisputeModal(dJson){
     ${d.rider_response?`<div class="modal-section">Réponse du livreur</div><div style="background:#1a1a2a;border:1px solid #2a2a4a;border-radius:8px;padding:14px;margin-bottom:1.5rem;font-size:13px;line-height:1.6;color:#378ADD">${d.rider_response}</div>`:''}
     ${d.resolution_favor?`<div class="modal-section">✅ Décision rendue</div><div style="background:#1a2a1a;border-radius:8px;padding:14px;margin-bottom:1rem;font-size:13px;color:#00C853">En faveur du : ${d.resolution_favor==='client'?'👤 Client':'🏍️ Livreur'}<br/><span style="color:#777">${d.resolution_note||''}</span></div>`:''}
     ${d.order_traces?`
-    <div class="modal-section">📋 Traces de la commande</div>
+    <div class="modal-section">📋 Traces de la commande <button class="btn-sm btn-blue" style="float:right;font-size:10px" onclick="loadAuditLogs(${d.order_id})">Voir logs détaillés</button></div>
     <div class="modal-info">
       <div class="info-row"><div class="lbl">Montant</div><div class="val">${d.order_traces.amount?.toLocaleString()} FCFA</div></div>
       <div class="info-row"><div class="lbl">Statut</div><div class="val">${statusBadge(d.order_traces.status)}</div></div>
@@ -581,6 +581,40 @@ async function openDisputeModal(dJson){
     </div>`}
   `;
   document.getElementById('modal').classList.add('open');
+}
+
+async function loadAuditLogs(orderId){
+  const container = document.querySelector('[id^="audit-logs-"]');
+  if(!container) return;
+  container.innerHTML = '<div class="loading" style="font-size:12px">Chargement des logs...</div>';
+  try {
+    const logs = await adminGet('/admin/audit-logs/' + orderId);
+    if(logs.length === 0){
+      container.innerHTML = '<div style="color:#777;font-size:12px;padding:8px">Aucun log disponible</div>';
+      return;
+    }
+    const actionLabels = {
+      'payment_confirmed': '💰 Paiement confirmé',
+      'delivery_code_verified': '🔑 Code de livraison validé',
+      'proposal_accepted': '✅ Proposition acceptée',
+    };
+    container.innerHTML = `
+      <div class="modal-section">🔍 Journal des actions</div>
+      <div style="background:#111;border-radius:8px;padding:12px;font-size:12px">
+        ${logs.map(l => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #222">
+            <div>
+              <span style="color:#00C853">${actionLabels[l.action]||l.action}</span>
+              <span style="color:#777;margin-left:8px">${l.user_role==='rider'?'🏍️':'👤'} ${l.user_phone||'—'}</span>
+              ${l.details?`<div style="color:#555;margin-top:2px">${JSON.stringify(l.details)}</div>`:''}
+            </div>
+            <div style="color:#555;white-space:nowrap;margin-left:12px">${fmtDate(l.created_at)}</div>
+          </div>
+        `).join('')}
+      </div>`;
+  } catch(e) {
+    container.innerHTML = '<div style="color:#FF4444;font-size:12px">Erreur chargement logs</div>';
+  }
 }
 
 async function closeDispute(id){
