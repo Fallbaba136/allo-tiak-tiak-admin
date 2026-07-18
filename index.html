@@ -602,7 +602,7 @@ async function resolveDispute(id, favor){
     if(favor === 'rejected'){
       await adminReq('/admin/disputes/'+id+'/resolve','PATCH',{status:'rejected',resolution_note:note});
     } else {
-      await adminReq('/disputes/'+id+'/admin-resolve?resolution_note='+encodeURIComponent(note)+'&resolution_favor='+favor,'PATCH',{});
+      await adminReq('/admin/disputes/'+id+'/admin-resolve?resolution_note='+encodeURIComponent(note)+'&resolution_favor='+favor,'PATCH',{});
     }
     closeModal();
     loadDisputes();
