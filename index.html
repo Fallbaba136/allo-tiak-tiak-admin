@@ -504,13 +504,15 @@ function fmtCell(v){if(v===null||v===undefined)return'<span style="color:#444">n
 let chartStatus=null, chartHours=null, chartRevenue=null;
 
 function applyStats(s){
-  document.getElementById('s-orders').textContent=s.total_orders;
-  document.getElementById('s-riders').textContent=s.verified_riders;
-  document.getElementById('s-disputes').textContent=s.open_disputes;
-  document.getElementById('s-commission').textContent=s.total_commission.toLocaleString()+' F';
-  document.getElementById('s-inprogress').textContent=s.in_progress_orders;
-  document.getElementById('s-available').textContent=s.available_riders;
-  document.getElementById('s-revenue').textContent=s.total_revenue.toLocaleString()+' F';
+  try{document.getElementById('s-orders').textContent=s.total_orders;}catch(e){}
+  try{document.getElementById('s-riders').textContent=s.verified_riders;}catch(e){}
+  try{document.getElementById('s-disputes').textContent=s.open_disputes;}catch(e){}
+  try{document.getElementById('s-commission').textContent=Math.round(s.total_commission).toLocaleString()+' F';}catch(e){}
+  try{document.getElementById('s-inprogress').textContent=s.in_progress_orders;}catch(e){}
+  try{document.getElementById('s-available').textContent=s.available_riders;}catch(e){}
+  try{document.getElementById('s-orders-trend').textContent='📦 '+s.total_orders+' commandes au total';}catch(e){}
+  try{document.getElementById('s-available-trend').textContent='🏍️ '+s.available_riders+' disponibles maintenant';}catch(e){}
+  try{document.getElementById('s-revenue-trend').textContent='💵 Revenu total : '+Math.round(s.total_revenue).toLocaleString()+' FCFA';}catch(e){}
 }
 
 async function loadDashboard(){
