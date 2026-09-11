@@ -593,12 +593,6 @@ async function loadDashboard(){
 
   }catch(e){}
   try{const riders=await adminGet('/admin/riders');document.getElementById('s-kyc').textContent=riders.filter(r=>r.kyc_status==='submitted').length;}catch(e){}
-  try{
-    const orders=await adminGet('/admin/orders');
-    const el=document.getElementById('recent-table');
-    el.innerHTML=orders.length?`<table><thead><tr><th>#</th><th>Ramassage</th><th>Livraison</th><th>Montant</th><th>Type</th><th>Statut</th><th>Date</th></tr></thead><tbody>
-    ${orders.slice(0,8).map(o=>`<tr><td style="color:var(--muted)">#${o.id}</td><td>${fmtAddr(o.pickup_address)}</td><td>${fmtAddr(o.delivery_address)}</td><td>${o.amount?o.amount.toLocaleString()+' F':'—'}</td><td><span class="badge bm">${o.order_type==='transport'?'🏍️':'📦'}</span></td><td>${statusBadge(o.status)}</td><td style="color:var(--muted)">${fmtDate(o.created_at)}</td><td><button class="btn-sm btn-blue" onclick='openOrderModal(${JSON.stringify(JSON.stringify(o))})'>Détail</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Aucune commande</div>';
-  }catch(e){document.getElementById('recent-table').innerHTML='<div class="empty">Erreur</div>';}
 }
 
 async function loadRiders(){
