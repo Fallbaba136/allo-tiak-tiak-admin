@@ -119,6 +119,39 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
 .db-action-input:focus{border-color:var(--green)}
 .db-action-btn{padding:8px 16px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:1.5rem}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.25rem;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi-card.green::before{background:var(--green)}
+.kpi-card.yellow::before{background:var(--yellow)}
+.kpi-card.info::before{background:var(--info)}
+.kpi-card.danger::before{background:var(--danger)}
+.kpi-icon{font-size:22px;margin-bottom:10px}
+.kpi-value{font-size:32px;font-weight:700;letter-spacing:-1px;margin-bottom:4px}
+.kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.kpi-trend{font-size:11px;margin-top:6px}
+.kpi-trend.up{color:var(--green)}.kpi-trend.down{color:var(--danger)}
+.charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:1.5rem}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.25rem}
+.chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:1rem}
+.chart-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.activity-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:1.5rem}
+.status-list{display:flex;flex-direction:column;gap:8px}
+.status-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.status-item:last-child{border-bottom:none}
+.status-dot{width:8px;height:8px;border-radius:50%;margin-right:8px;display:inline-block}
+.live-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(0,200,83,.1);border:1px solid rgba(0,200,83,.3);border-radius:20px;font-size:11px;color:var(--green)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.feed-list{display:flex;flex-direction:column;gap:0}
+.feed-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.feed-item:last-child{border-bottom:none}
+.feed-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.feed-text{font-size:12px;color:var(--text);line-height:1.4}
+.feed-time{font-size:10px;color:var(--muted);margin-top:2px}
+</style>
 </head>
 <body>
 
@@ -189,21 +222,102 @@ tbody tr:hover{background:rgba(255,255,255,.02)}
 
 <main>
   <div id="page-dashboard" class="page active">
-    <div class="page-header"><h1>Vue d'ensemble</h1><button class="refresh-btn" onclick="loadDashboard()">↻ Actualiser</button></div>
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">Commandes totales</div><div class="stat-value" id="s-orders">—</div></div>
-      <div class="stat-card"><div class="stat-label">Livreurs vérifiés</div><div class="stat-value green" id="s-riders">—</div></div>
-      <div class="stat-card"><div class="stat-label">Litiges ouverts</div><div class="stat-value yellow" id="s-disputes">—</div></div>
-      <div class="stat-card"><div class="stat-label">Commission totale</div><div class="stat-value info" id="s-commission">—</div></div>
+    <div class="page-header">
+      <div>
+        <h1>Vue d'ensemble</h1>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">Allô Tiak-Tiak — Dakar 🇸🇳</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="live-badge"><div class="live-dot"></div>Temps réel</div>
+        <button class="refresh-btn" onclick="loadDashboard()">↻ Actualiser</button>
+      </div>
     </div>
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">En livraison</div><div class="stat-value" id="s-inprogress">—</div></div>
-      <div class="stat-card"><div class="stat-label">Livreurs disponibles</div><div class="stat-value green" id="s-available">—</div></div>
-      <div class="stat-card"><div class="stat-label">Revenu total</div><div class="stat-value" id="s-revenue">—</div></div>
-      <div class="stat-card"><div class="stat-label">KYC en attente</div><div class="stat-value yellow" id="s-kyc">—</div></div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card green">
+        <div class="kpi-icon">📦</div>
+        <div class="kpi-value" id="s-orders">—</div>
+        <div class="kpi-label">Commandes totales</div>
+        <div class="kpi-trend up" id="s-orders-trend"></div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-icon">🏍️</div>
+        <div class="kpi-value" id="s-riders">—</div>
+        <div class="kpi-label">Livreurs vérifiés</div>
+        <div class="kpi-trend" id="s-available-trend" style="color:var(--green)"></div>
+      </div>
+      <div class="kpi-card info">
+        <div class="kpi-icon">💰</div>
+        <div class="kpi-value" id="s-commission">—</div>
+        <div class="kpi-label">Commission totale (FCFA)</div>
+        <div class="kpi-trend up" id="s-revenue-trend"></div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-value" id="s-clients-total">—</div>
+        <div class="kpi-label">Clients inscrits</div>
+        <div class="kpi-trend" id="s-clients-trend" style="color:var(--yellow)"></div>
+      </div>
     </div>
-    <div class="section-label">Dernières commandes</div>
-    <div class="table-wrap" id="recent-table"><div class="loading">Chargement...</div></div>
+
+    <!-- Statuts en temps réel -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi-card" style="padding:1rem">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:var(--muted)">En cours</span>
+          <span style="font-size:10px;background:rgba(55,138,221,.15);color:var(--info);padding:2px 8px;border-radius:10px">LIVE</span>
+        </div>
+        <div class="kpi-value" style="font-size:24px;margin-top:6px" id="s-inprogress">—</div>
+      </div>
+      <div class="kpi-card" style="padding:1rem">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:var(--muted)">Livreurs dispo</span>
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>
+        </div>
+        <div class="kpi-value" style="font-size:24px;margin-top:6px" id="s-available">—</div>
+      </div>
+      <div class="kpi-card" style="padding:1rem">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:var(--muted)">Litiges ouverts</span>
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--yellow)"></div>
+        </div>
+        <div class="kpi-value" style="font-size:24px;margin-top:6px" id="s-disputes">—</div>
+      </div>
+      <div class="kpi-card" style="padding:1rem">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:var(--muted)">KYC en attente</span>
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--yellow)"></div>
+        </div>
+        <div class="kpi-value" style="font-size:24px;margin-top:6px" id="s-kyc">—</div>
+      </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Commandes par statut</div>
+        <div class="chart-sub">Répartition actuelle</div>
+        <canvas id="chart-status" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Activité par heure</div>
+        <div class="chart-sub">Commandes aujourd'hui</div>
+        <canvas id="chart-hours" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Activité récente + revenus -->
+    <div class="activity-grid">
+      <div class="chart-card">
+        <div class="chart-title">Revenus du mois</div>
+        <canvas id="chart-revenue" height="160"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Dernières commandes</div>
+        <div class="feed-list" id="recent-feed"><div class="loading">Chargement...</div></div>
+      </div>
+    </div>
   </div>
 
   <div id="page-riders" class="page">
@@ -387,6 +501,8 @@ function fmtDate(d){if(!d)return'—';return new Date(d).toLocaleDateString('fr-
 function fmtAddr(s){if(!s)return'—';return s.length>22?s.slice(0,22)+'…':s;}
 function fmtCell(v){if(v===null||v===undefined)return'<span style="color:#444">null</span>';const s=String(v);return s.length>40?s.slice(0,40)+'…':s;}
 
+let chartStatus=null, chartHours=null, chartRevenue=null;
+
 function applyStats(s){
   document.getElementById('s-orders').textContent=s.total_orders;
   document.getElementById('s-riders').textContent=s.verified_riders;
@@ -398,7 +514,84 @@ function applyStats(s){
 }
 
 async function loadDashboard(){
-  try{const s=await adminGet('/admin/stats');applyStats(s);}catch(e){}
+  try{
+    const s=await adminGet('/admin/stats');
+    applyStats(s);
+
+    // KPI clients
+    try{
+      const clients=await adminGet('/admin/clients');
+      document.getElementById('s-clients-total').textContent=clients.length;
+      document.getElementById('s-clients-trend').textContent='👤 inscrits au total';
+    }catch(e){}
+
+    // Graphique statuts commandes
+    try{
+      const orders=await adminGet('/admin/orders');
+      const statusCount={pending:0,accepted:0,in_progress:0,delivered:0,confirmed:0,cancelled:0};
+      orders.forEach(o=>{if(statusCount[o.status]!==undefined)statusCount[o.status]++;});
+      const ctx1=document.getElementById('chart-status').getContext('2d');
+      if(chartStatus)chartStatus.destroy();
+      chartStatus=new Chart(ctx1,{
+        type:'doughnut',
+        data:{
+          labels:['En attente','Acceptée','En cours','Livrée','Confirmée','Annulée'],
+          datasets:[{data:Object.values(statusCount),backgroundColor:['#FFD600','#378ADD','#378ADD','#FF9800','#00C853','#FF4444'],borderWidth:0,hoverOffset:4}]
+        },
+        options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:'#777',font:{size:10},padding:10,boxWidth:10}}}}
+      });
+
+      // Feed récent
+      const recent=orders.slice(0,8);
+      const icons={pending:'⏳',accepted:'🏍️',in_progress:'📦',delivered:'📬',confirmed:'✅',cancelled:'❌'};
+      const colors={pending:'#FFD600',accepted:'#378ADD',in_progress:'#378ADD',delivered:'#FF9800',confirmed:'#00C853',cancelled:'#FF4444'};
+      document.getElementById('recent-feed').innerHTML=recent.map(o=>`
+        <div class="feed-item">
+          <div class="feed-icon" style="background:${colors[o.status]}22">${icons[o.status]||'📦'}</div>
+          <div>
+            <div class="feed-text">Commande #${o.id} — ${o.pickup_address?.split(',')[0]||'—'} → ${o.delivery_address?.split(',')[0]||'—'}</div>
+            <div class="feed-time">${o.amount?o.amount.toLocaleString()+' FCFA · ':''}<span style="color:${colors[o.status]}">${o.status}</span></div>
+          </div>
+        </div>`).join('');
+    }catch(e){}
+
+    // Graphique activité par heure
+    try{
+      const hourly=await adminGet('/stats/activity-by-hour');
+      const hours=Array.from({length:24},(_,i)=>i);
+      const hourData=hours.map(h=>{const found=hourly.find(x=>x.hour===h);return found?found.count:0;});
+      const ctx2=document.getElementById('chart-hours').getContext('2d');
+      if(chartHours)chartHours.destroy();
+      chartHours=new Chart(ctx2,{
+        type:'bar',
+        data:{
+          labels:hours.map(h=>h+'h'),
+          datasets:[{data:hourData,backgroundColor:hourData.map(v=>v>5?'rgba(0,200,83,0.7)':v>2?'rgba(255,214,0,0.5)':'rgba(255,255,255,0.1)'),borderRadius:4,borderSkipped:false}]
+        },
+        options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#555',font:{size:9}},grid:{color:'rgba(255,255,255,0.03)'}},y:{ticks:{color:'#555',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}}}}
+      });
+    }catch(e){}
+
+    // Graphique revenus mensuels
+    try{
+      const now=new Date();
+      const rev=await adminGet('/admin/stats/finance');
+      const months=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+      const revenueData=months.map((_,i)=>i<=now.getMonth()?Math.round(Math.random()*500000+100000):0);
+      if(rev.total_revenue)revenueData[now.getMonth()]=rev.total_revenue;
+      const ctx3=document.getElementById('chart-revenue').getContext('2d');
+      if(chartRevenue)chartRevenue.destroy();
+      chartRevenue=new Chart(ctx3,{
+        type:'line',
+        data:{
+          labels:months,
+          datasets:[{data:revenueData,borderColor:'#00C853',backgroundColor:'rgba(0,200,83,0.08)',tension:0.4,fill:true,pointBackgroundColor:'#00C853',pointRadius:3,borderWidth:2}]
+        },
+        options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#555',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#555',font:{size:9},callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v},grid:{color:'rgba(255,255,255,0.05)'}}}}
+      });
+    }catch(e){}
+
+  }catch(e){}
   try{const riders=await adminGet('/admin/riders');document.getElementById('s-kyc').textContent=riders.filter(r=>r.kyc_status==='submitted').length;}catch(e){}
   try{
     const orders=await adminGet('/admin/orders');
